@@ -1,0 +1,60 @@
+name: Install RetailFlow in Jira development
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/install-forge-app.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retailflow-forge-jira-install
+  cancel-in-progress: false
+
+jobs:
+  install:
+    name: Install RetailFlow on Jira development site
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.23.4
+
+      - name: Install Forge CLI
+        run: npm install --global @forge/cli@latest
+
+      - name: Disable interactive analytics prompt
+        run: forge settings set usage-analytics false
+
+      - name: Confirm Atlassian authentication
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: forge whoami
+
+      - name: Check existing app installations
+        working-directory: app
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: forge install list --json
+
+      - name: Install RetailFlow in Jira development
+        working-directory: app
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: forge install --site https://u19725505.atlassian.net --product Jira --environment development --non-interactive
+
+      - name: Verify app installation
+        working-directory: app
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
+        run: forge install list --json
