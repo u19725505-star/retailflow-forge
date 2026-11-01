@@ -124,7 +124,21 @@ resolver.define('createInvestigation', async ({ payload }) => {
   }
 
   const created = await response.json();
-  const origin = new URL(created.self).origin;
+
+  // Ask Jira for the real site address. The "self" link in the create
+  // response points at the API gateway, which gives a 404 when opened.
+  let origin = '';
+  try {
+    const info = await api
+      .asApp()
+      .requestJira(route`/rest/api/3/serverInfo`);
+    if (info.ok) {
+      const serverInfo = await info.json();
+      origin = new URL(serverInfo.baseUrl).origin;
+    }
+  } catch (infoError) {
+    origin = '';
+  }
 
   let linked = false;
   if (sourceKey) {
