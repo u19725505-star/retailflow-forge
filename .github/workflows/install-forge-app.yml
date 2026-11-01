@@ -50,7 +50,7 @@ jobs:
         env:
           FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
           FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
-        run: forge install --site https://u19725505.atlassian.net --product Jira --environment development --non-interactive
+        run: forge install --upgrade --site https://u19725505.atlassian.net --product Jira --environment development --non-interactive
 
       - name: Verify app installation
         working-directory: app
