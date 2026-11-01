@@ -26,7 +26,7 @@ jobs:
           node-version: 22.23.4
 
       - name: Install Forge CLI
-        run: npm install --global @forge/cli@latest
+        run: npm install --global @forge/cli@12
 
       - name: Disable interactive analytics prompt
         run: forge settings set usage-analytics false
@@ -45,6 +45,9 @@ jobs:
           fi
 
       - name: Generate RetailFlow Jira issue panel
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
         run: forge create --template jira-issue-panel --directory app --personal --accept-terms retailflow
 
       - name: Validate Forge manifest and app
