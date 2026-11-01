@@ -2,6 +2,9 @@ name: Validate RetailFlow Forge app
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/create-forge-app.yml"
 
 permissions:
   contents: read
