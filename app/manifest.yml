@@ -1,0 +1,23 @@
+modules:
+  jira:issuePanel:
+    - key: retailflow-order-assurance-panel
+      resource: main
+      resolver:
+        function: resolver
+      render: native
+      title: RetailFlow Order Assurance
+      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
+  function:
+    - key: resolver
+      handler: index.handler
+
+resources:
+  - key: main
+    path: src/frontend/index.jsx
+
+app:
+  runtime:
+    name: nodejs24.x
+
+permissions:
+  scopes: []
