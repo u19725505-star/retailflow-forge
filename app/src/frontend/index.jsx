@@ -138,7 +138,11 @@ const OrderDetail = ({ orderId, issueKey, onInvestigationChange }) => {
         ) : null}
         <Inline spread="space-between">
           <Text>Variance</Text>
-          <Text>{formatMoney(order.unexplainedVariance, order.currency)}</Text>
+          <Text>
+            {order.varianceApplicable
+              ? formatMoney(order.unexplainedVariance, order.currency)
+              : 'Nothing captured yet'}
+          </Text>
         </Inline>
         <Text>{order.explanation}</Text>
         <Text>Settlement status: {order.settlementStatus}</Text>
@@ -186,20 +190,45 @@ const OrderDetail = ({ orderId, issueKey, onInvestigationChange }) => {
 };
 
 const IssuePanel = ({ issueKey }) => {
-  const [orders, setOrders] = useState([]);
-  const [selectedId, setSelectedId] = useState(DEFAULT_ORDER_ID);
+  const [orders, setOrders] = useState(null);
+  const [selectedId, setSelectedId] = useState(null);
+  const [matched, setMatched] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let active = true;
-    invoke('listOrders')
-      .then((result) => {
-        if (active) setOrders(result?.orders ?? []);
+
+    Promise.all([
+      invoke('listOrders'),
+      invoke('getOrderForIssue', { issueKey }),
+    ])
+      .then(([list, match]) => {
+        if (!active) return;
+        setOrders(list?.orders ?? []);
+        setSelectedId(match?.orderId ?? DEFAULT_ORDER_ID);
+        setMatched(Boolean(match?.matched));
       })
-      .catch(() => {});
+      .catch((reason) => {
+        if (active) setError(reason?.message ?? 'Unable to load orders.');
+      });
+
     return () => {
       active = false;
     };
-  }, []);
+  }, [issueKey]);
+
+  if (error) {
+    return (
+      <Stack space="space.100">
+        <Text>We could not load RetailFlow.</Text>
+        <Text>{error}</Text>
+      </Stack>
+    );
+  }
+
+  if (!orders || !selectedId) {
+    return <Text>Loading RetailFlow…</Text>;
+  }
 
   const options = orders.map((order) => ({
     label: `${order.orderId} · ${order.statusLabel}`,
@@ -209,20 +238,20 @@ const IssuePanel = ({ issueKey }) => {
   return (
     <Stack space="space.200">
       <Stack space="space.050">
-        <Heading size="large">RetailFlow</Heading>
         <Text>Grocery order, fulfillment and payment assurance</Text>
         <Text>Jira issue {issueKey}</Text>
+        {matched ? (
+          <Text>This issue is the investigation for order {selectedId}.</Text>
+        ) : null}
       </Stack>
 
-      {options.length > 0 ? (
-        <Select
-          options={options}
-          defaultValue={options.find((option) => option.value === DEFAULT_ORDER_ID)}
-          onChange={(option) => {
-            if (option?.value) setSelectedId(option.value);
-          }}
-        />
-      ) : null}
+      <Select
+        options={options}
+        defaultValue={options.find((option) => option.value === selectedId)}
+        onChange={(option) => {
+          if (option?.value) setSelectedId(option.value);
+        }}
+      />
 
       <OrderDetail key={selectedId} orderId={selectedId} issueKey={issueKey} />
     </Stack>
@@ -252,7 +281,6 @@ const Dashboard = () => {
   if (error) {
     return (
       <Stack space="space.100">
-        <Heading size="large">RetailFlow</Heading>
         <Text>We could not load the order list.</Text>
         <Text>{error}</Text>
       </Stack>
@@ -260,12 +288,7 @@ const Dashboard = () => {
   }
 
   if (!data) {
-    return (
-      <Stack space="space.100">
-        <Heading size="large">RetailFlow</Heading>
-        <Text>Loading orders…</Text>
-      </Stack>
-    );
+    return <Text>Loading orders…</Text>;
   }
 
   const orders = data.orders ?? [];
@@ -275,12 +298,8 @@ const Dashboard = () => {
   return (
     <Stack space="space.300">
       <Stack space="space.050">
-        <Heading size="large">RetailFlow</Heading>
         <Text>Grocery order, fulfillment and payment assurance</Text>
         <Text>{data.dataMode}</Text>
-      </Stack>
-
-      <Stack space="space.050">
         <Text>
           {orders.length} orders · {reconciled} reconciled · {needsReview} need review
         </Text>
@@ -296,7 +315,11 @@ const Dashboard = () => {
               <StatusLozenge status={order.status} label={order.statusLabel} />
             </Stack>
             <Stack space="space.050">
-              <Text>Variance {formatMoney(order.variance)}</Text>
+              <Text>
+                {order.varianceApplicable
+                  ? `Variance ${formatMoney(order.variance)}`
+                  : 'Nothing captured yet'}
+              </Text>
               {order.investigationKey ? (
                 <Link href={order.investigationUrl} openNewTab>
                   {order.investigationKey}
