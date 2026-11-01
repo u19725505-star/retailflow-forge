@@ -10,6 +10,7 @@
   "dependencies": {
     "@forge/api": "latest",
     "@forge/bridge": "latest",
+    "@forge/kvs": "latest",
     "@forge/react": "latest",
     "@forge/resolver": "latest"
   },
