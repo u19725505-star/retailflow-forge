@@ -138,6 +138,8 @@ const assess = (order) => {
   return {
     expected,
     variance,
+    // A variance is only meaningful once something has been captured.
+    varianceApplicable: status !== 'pending_settlement',
     evidenceVerified,
     status,
     statusLabel: STATUS_LABELS[status],
@@ -172,12 +174,32 @@ resolver.define('listOrders', async () => {
         expectedFinalTotal: toDollars(result.expected),
         capturedCharge: toDollars(order.capturedCharge),
         variance: toDollars(result.variance),
+        varianceApplicable: result.varianceApplicable,
         investigationKey: investigation?.key ?? null,
         investigationUrl: investigation?.url ?? null,
       };
     }),
   );
   return { dataMode: 'Synthetic demonstration data', orders: rows };
+});
+
+// Finds the order an investigation issue belongs to, so the panel can open
+// on the right order when it is shown inside that issue.
+resolver.define('getOrderForIssue', async ({ payload }) => {
+  const issueKey = payload?.issueKey ?? null;
+  if (issueKey) {
+    const records = await Promise.all(
+      ORDERS.map(async (order) => ({
+        orderId: order.orderId,
+        record: await readInvestigation(order.orderId),
+      })),
+    );
+    const match = records.find((entry) => entry.record?.key === issueKey);
+    if (match) {
+      return { orderId: match.orderId, matched: true };
+    }
+  }
+  return { orderId: DEFAULT_ORDER_ID, matched: false };
 });
 
 resolver.define('getOrderAssurance', async ({ payload }) => {
@@ -207,6 +229,7 @@ resolver.define('getOrderAssurance', async ({ payload }) => {
     authorizationHold: toDollars(order.authorizationHold),
     settlementStatus: order.settlementStatus,
     unexplainedVariance: toDollars(result.variance),
+    varianceApplicable: result.varianceApplicable,
     arithmeticVerified: true,
     evidenceVerified: result.evidenceVerified,
     status: result.status,
@@ -244,11 +267,14 @@ resolver.define('createInvestigation', async ({ payload }) => {
     ),
   );
 
+  const variancePart =
+    result.variance === 0 ? '' : ` (${money(result.variance)})`;
+
   const body = {
     fields: {
       project: { key: projectKey },
       issuetype: { name: 'Task' },
-      summary: `Investigate ${result.statusLabel.toLowerCase()} on order ${order.orderId} (${money(result.variance)})`,
+      summary: `Investigate ${result.statusLabel.toLowerCase()} on order ${order.orderId}${variancePart}`,
       description: {
         type: 'doc',
         version: 1,
