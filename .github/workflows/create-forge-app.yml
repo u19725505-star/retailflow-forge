@@ -43,6 +43,9 @@ jobs:
 
       - name: Register RetailFlow in its Developer Space
         working-directory: app
+        env:
+          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
+          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
         run: forge register --developer-space-id 9c107e84-9742-4010-ae59-99098eac3e08 --accept-terms retailflow
 
       - name: Save registered app ID
