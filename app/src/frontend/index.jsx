@@ -22,6 +22,7 @@ const App = () => {
   const [error, setError] = useState(null);
   const [creating, setCreating] = useState(false);
   const [investigation, setInvestigation] = useState(null);
+  const [alreadyExisted, setAlreadyExisted] = useState(false);
   const [createError, setCreateError] = useState(null);
 
   const issueKey = context?.extension?.issue?.key ?? null;
@@ -31,7 +32,12 @@ const App = () => {
 
     invoke('getOrderAssurance', { issueKey })
       .then((result) => {
-        if (active) setOrder(result);
+        if (!active) return;
+        setOrder(result);
+        if (result?.investigation) {
+          setInvestigation(result.investigation);
+          setAlreadyExisted(true);
+        }
       })
       .catch((reason) => {
         if (active) setError(reason?.message ?? 'Unable to load order assurance.');
@@ -49,6 +55,7 @@ const App = () => {
       const result = await invoke('createInvestigation', { issueKey });
       if (result?.ok) {
         setInvestigation(result);
+        setAlreadyExisted(Boolean(result.existing));
       } else {
         const detail = result?.detail ? ` ${result.detail}` : '';
         setCreateError(`${result?.message ?? 'Could not create the issue.'}${detail}`);
@@ -149,14 +156,18 @@ const App = () => {
           <Heading size="medium">Investigation</Heading>
           {investigation ? (
             <Stack space="space.050">
-              <Text>Investigation issue created:</Text>
+              <Text>
+                {alreadyExisted
+                  ? 'An investigation already exists for this order:'
+                  : 'Investigation issue created:'}
+              </Text>
               <Link href={investigation.url} openNewTab>
                 {investigation.key}
               </Link>
               <Text>
                 {investigation.linked
-                  ? `Linked to ${issueKey}.`
-                  : 'Created, but it could not be linked to this issue.'}
+                  ? `Linked to ${investigation.linkedFrom ?? 'the source issue'}.`
+                  : 'Not linked to a source issue.'}
               </Text>
             </Stack>
           ) : (
