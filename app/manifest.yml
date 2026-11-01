@@ -7,6 +7,21 @@ modules:
       render: native
       title: RetailFlow Order Assurance
       icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
+  jira:issueContext:
+    - key: retailflow-order-assurance-context
+      resource: main
+      resolver:
+        function: resolver
+      render: native
+      title: RetailFlow
+      label: RetailFlow Order Assurance
+  jira:globalPage:
+    - key: retailflow-order-assurance-page
+      resource: main
+      resolver:
+        function: resolver
+      render: native
+      title: RetailFlow
   function:
     - key: resolver
       handler: index.handler
