@@ -1,12 +1,4 @@
 modules:
-  jira:issuePanel:
-    - key: retailflow-order-assurance-panel
-      resource: main
-      resolver:
-        function: resolver
-      render: native
-      title: RetailFlow Order Assurance
-      icon: https://developer.atlassian.com/platform/forge/images/icons/issue-panel-icon.svg
   jira:issueContext:
     - key: retailflow-order-assurance-context
       resource: main
