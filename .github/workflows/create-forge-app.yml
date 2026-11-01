@@ -1,4 +1,4 @@
-name: Create RetailFlow Forge app
+name: Register RetailFlow Forge app
 
 on:
   workflow_dispatch:
@@ -7,12 +7,12 @@ permissions:
   contents: write
 
 concurrency:
-  group: retailflow-forge-scaffold
+  group: retailflow-forge-registration
   cancel-in-progress: false
 
 jobs:
-  scaffold:
-    name: Generate and validate Forge app scaffold
+  register:
+    name: Register and validate RetailFlow Forge app
     runs-on: ubuntu-24.04
     steps:
       - name: Check out repository
@@ -37,27 +37,25 @@ jobs:
           FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
         run: forge whoami
 
-      - name: Ensure app directory is unused
-        run: |
-          if [ -e app/manifest.yml ]; then
-            echo "A Forge app already exists in app/. Refusing to overwrite it."
-            exit 1
-          fi
+      - name: Install RetailFlow dependencies
+        working-directory: app
+        run: npm install
 
-      - name: Generate RetailFlow Jira issue panel
+      - name: Register RetailFlow as a personal Forge app
+        working-directory: app
         env:
           FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
           FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
-        run: forge create --template jira-issue-panel --directory app --personal --accept-terms retailflow
+        run: forge register --personal --accept-terms retailflow
 
-      - name: Validate Forge manifest and app
+      - name: Validate registered app
         working-directory: app
         run: forge lint
 
-      - name: Commit generated Forge app
+      - name: Commit registered app ID
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add app
-          git commit -m "Create RetailFlow Forge Jira issue panel scaffold"
+          git add app/manifest.yml app/package.json app/package-lock.json
+          git commit -m "Register RetailFlow Forge app and validate manifest"
           git push
