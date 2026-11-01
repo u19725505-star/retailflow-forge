@@ -1,5 +1,6 @@
 import Resolver from '@forge/resolver';
 import api, { route } from '@forge/api';
+import { kvs } from '@forge/kvs';
 
 const resolver = new Resolver();
 
@@ -22,6 +23,18 @@ const DEMO_ORDER = {
   expectedFinalTotal: 138.5,
   capturedCharge: 147.0,
   settlementStatus: 'Not yet verified',
+};
+
+const investigationStorageKey = (orderId) => `investigation-${orderId}`;
+
+const readInvestigation = async (orderId) => {
+  try {
+    const record = await kvs.get(investigationStorageKey(orderId));
+    return record ?? null;
+  } catch (storageError) {
+    console.error('Could not read stored investigation', storageError);
+    return null;
+  }
 };
 
 const calculateAssurance = () => {
@@ -51,6 +64,7 @@ const paragraph = (text) => ({
 
 resolver.define('getOrderAssurance', async ({ payload }) => {
   const { arithmeticVerified, variance } = calculateAssurance();
+  const investigation = await readInvestigation(DEMO_ORDER.orderId);
 
   return {
     ...DEMO_ORDER,
@@ -58,6 +72,7 @@ resolver.define('getOrderAssurance', async ({ payload }) => {
     arithmeticVerified,
     unexplainedVariance: variance,
     reviewRequired: !arithmeticVerified || variance !== 0,
+    investigation,
     explanation:
       variance === 0
         ? 'The captured charge matches the calculated expected final total.'
@@ -70,6 +85,13 @@ resolver.define('createInvestigation', async ({ payload }) => {
 
   if (arithmeticVerified && variance === 0) {
     return { ok: false, message: 'No discrepancy to investigate.' };
+  }
+
+  // If an investigation already exists for this order, return it instead of
+  // creating a duplicate Jira issue.
+  const existing = await readInvestigation(DEMO_ORDER.orderId);
+  if (existing) {
+    return { ok: true, existing: true, ...existing };
   }
 
   const sourceKey = payload?.issueKey ?? null;
@@ -160,12 +182,24 @@ resolver.define('createInvestigation', async ({ payload }) => {
     }
   }
 
-  return {
-    ok: true,
+  const record = {
     key: created.key,
     url: `${origin}/browse/${created.key}`,
     linked,
+    linkedFrom: sourceKey,
+    createdAt: new Date().toISOString(),
   };
+
+  // Remember this investigation so the button cannot create a duplicate.
+  let remembered = true;
+  try {
+    await kvs.set(investigationStorageKey(DEMO_ORDER.orderId), record);
+  } catch (storageError) {
+    console.error('Could not store investigation record', storageError);
+    remembered = false;
+  }
+
+  return { ok: true, existing: false, remembered, ...record };
 });
 
 export const handler = resolver.getDefinitions();
