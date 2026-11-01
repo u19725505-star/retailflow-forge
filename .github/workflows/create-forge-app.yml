@@ -41,21 +41,18 @@ jobs:
         working-directory: app
         run: npm install
 
-      - name: Register RetailFlow as a personal Forge app
+      - name: Register RetailFlow in its Developer Space
         working-directory: app
-        env:
-          FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
-          FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
-        run: forge register --personal --accept-terms retailflow
+        run: forge register --developer-space-id 9c107e84-9742-4010-ae59-99098eac3e08 --accept-terms retailflow
 
-      - name: Validate registered app
-        working-directory: app
-        run: forge lint
-
-      - name: Commit registered app ID
+      - name: Save registered app ID
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add app/manifest.yml app/package.json app/package-lock.json
-          git commit -m "Register RetailFlow Forge app and validate manifest"
+          git commit -m "Register RetailFlow Forge app"
           git push
+
+      - name: Validate registered app
+        working-directory: app
+        run: forge lint
