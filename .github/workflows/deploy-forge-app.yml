@@ -47,4 +47,4 @@ jobs:
         env:
           FORGE_EMAIL: ${{ secrets.FORGE_EMAIL }}
           FORGE_API_TOKEN: ${{ secrets.FORGE_API_TOKEN }}
-        run: forge deploy --non-interactive --environment development
+        run: forge deploy --non-interactive --environment development --approve MAJOR_VERSION_RULE
