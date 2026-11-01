@@ -1,0 +1,18 @@
+{
+  "name": "retailflow-forge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RetailFlow — grocery order, fulfillment, and payment assurance for Jira.",
+  "main": "src/index.js",
+  "scripts": {
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@forge/bridge": "latest",
+    "@forge/react": "latest",
+    "@forge/resolver": "latest"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
+  }
+}
