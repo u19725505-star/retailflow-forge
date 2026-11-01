@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import ForgeReconciler, {
+  Button,
   Heading,
   Inline,
+  Link,
   Stack,
   Text,
   useProductContext,
@@ -18,6 +20,9 @@ const App = () => {
   const context = useProductContext();
   const [order, setOrder] = useState(null);
   const [error, setError] = useState(null);
+  const [creating, setCreating] = useState(false);
+  const [investigation, setInvestigation] = useState(null);
+  const [createError, setCreateError] = useState(null);
 
   const issueKey = context?.extension?.issue?.key ?? null;
 
@@ -36,6 +41,24 @@ const App = () => {
       active = false;
     };
   }, [issueKey]);
+
+  const createInvestigation = async () => {
+    setCreating(true);
+    setCreateError(null);
+    try {
+      const result = await invoke('createInvestigation', { issueKey });
+      if (result?.ok) {
+        setInvestigation(result);
+      } else {
+        const detail = result?.detail ? ` ${result.detail}` : '';
+        setCreateError(`${result?.message ?? 'Could not create the issue.'}${detail}`);
+      }
+    } catch (reason) {
+      setCreateError(reason?.message ?? 'Could not create the issue.');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   if (error) {
     return (
@@ -120,6 +143,34 @@ const App = () => {
           evaluated separately.
         </Text>
       </Stack>
+
+      {order.reviewRequired ? (
+        <Stack space="space.100">
+          <Heading size="medium">Investigation</Heading>
+          {investigation ? (
+            <Stack space="space.050">
+              <Text>Investigation issue created:</Text>
+              <Link href={investigation.url} openNewTab>
+                {investigation.key}
+              </Link>
+              <Text>
+                {investigation.linked
+                  ? `Linked to ${issueKey}.`
+                  : 'Created, but it could not be linked to this issue.'}
+              </Text>
+            </Stack>
+          ) : (
+            <Button
+              appearance="primary"
+              isDisabled={creating}
+              onClick={createInvestigation}
+            >
+              {creating ? 'Creating issue…' : 'Create investigation issue'}
+            </Button>
+          )}
+          {createError ? <Text>{createError}</Text> : null}
+        </Stack>
+      ) : null}
     </Stack>
   );
 };
