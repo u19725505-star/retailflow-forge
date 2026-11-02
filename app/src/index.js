@@ -148,6 +148,17 @@ const assess = (order) => {
   };
 };
 
+// Builds the Jira issue title for an investigation.
+const investigationTitle = (status, orderId, variance) => {
+  if (status === 'evidence_review') {
+    return `Review missing evidence on order ${orderId}`;
+  }
+  if (variance === 0) {
+    return `Investigate order ${orderId}`;
+  }
+  return `Investigate payment variance on order ${orderId} (${money(variance)})`;
+};
+
 const investigationStorageKey = (orderId) => `investigation-${orderId}`;
 
 const readInvestigation = async (orderId) => {
@@ -267,14 +278,11 @@ resolver.define('createInvestigation', async ({ payload }) => {
     ),
   );
 
-  const variancePart =
-    result.variance === 0 ? '' : ` (${money(result.variance)})`;
-
   const body = {
     fields: {
       project: { key: projectKey },
       issuetype: { name: 'Task' },
-      summary: `Investigate ${result.statusLabel.toLowerCase()} on order ${order.orderId}${variancePart}`,
+      summary: investigationTitle(result.status, order.orderId, result.variance),
       description: {
         type: 'doc',
         version: 1,
